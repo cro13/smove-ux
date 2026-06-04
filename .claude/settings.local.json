@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:smove.ai)",
+      "Bash(grep -oiE '<h[1-6][^>]*>\\([^<]|<[^h]\\)+</h[1-6]>' /tmp/smove.html | sed 's/<[^>]*>//g' | head -30; echo \"---SECTIONS---\"; grep -oiE '<section[^>]*>' /tmp/smove.html | head -20; echo \"---IMAGES---\"; grep -oiE 'src=\"[^\"]+\\\\.\\(png|jpg|jpeg|webp|svg|gif|mp4|webm\\)\"' /tmp/smove.html | sort -u)",
+      "mcp__Claude_in_Chrome__select_browser",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "mcp__Claude_in_Chrome__javascript_tool",
+      "Bash(npx @convex-dev/auth)",
+      "mcp__Claude_in_Chrome__read_network_requests",
+      "mcp__Claude_in_Chrome__read_console_messages"
+    ]
+  }
+}

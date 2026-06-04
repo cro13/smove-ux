@@ -2,18 +2,17 @@
 
 import { useState } from 'react'
 
-import { AgentsPreview } from '@/components/home/agents-preview'
+import { AgentsHero } from '@/components/agents/agents-hero'
+import { ChannelsSection } from '@/components/agents/channels-section'
+import { FeaturesShowcase } from '@/components/agents/features-showcase'
 import { CtaSection } from '@/components/home/cta-section'
 import { FaqSection } from '@/components/home/faq-section'
-import { FeaturesGrid } from '@/components/home/features-grid'
 import { FloatingRoles } from '@/components/home/floating-roles'
-import { HeroSection } from '@/components/home/hero-section'
-import { HowItWorks } from '@/components/home/how-it-works'
 import { Footer } from '@/components/layout/footer'
 import { Navbar } from '@/components/layout/navbar'
 import { WaitlistForm } from '@/components/ui/waitlist-form'
 
-export default function Home() {
+export default function AgentsPage() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false)
 
 	const handleGetStarted = () => setIsWaitlistOpen(true)
@@ -22,13 +21,12 @@ export default function Home() {
 		<>
 			<Navbar />
 			<main className="flex-1">
-				<HeroSection onGetStarted={handleGetStarted} />
-				<AgentsPreview />
-				<FeaturesGrid />
+				<AgentsHero onGetStarted={handleGetStarted} />
+				<ChannelsSection onGetStarted={handleGetStarted} />
+				<FeaturesShowcase />
 				<FloatingRoles />
-				<HowItWorks onGetStarted={handleGetStarted} />
-				<FaqSection />
 				<CtaSection onGetStarted={handleGetStarted} />
+				<FaqSection />
 			</main>
 			<Footer />
 			<WaitlistForm
