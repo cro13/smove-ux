@@ -9,12 +9,14 @@
  */
 
 import type * as agencies from "../agencies.js";
+import type * as approvals from "../approvals.js";
 import type * as auth from "../auth.js";
 import type * as brandContentBuckets from "../brandContentBuckets.js";
 import type * as brandImport from "../brandImport.js";
 import type * as brandPersonas from "../brandPersonas.js";
 import type * as brands from "../brands.js";
 import type * as http from "../http.js";
+import type * as submissions from "../submissions.js";
 import type * as waitlist from "../waitlist.js";
 
 import type {
@@ -25,12 +27,14 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   agencies: typeof agencies;
+  approvals: typeof approvals;
   auth: typeof auth;
   brandContentBuckets: typeof brandContentBuckets;
   brandImport: typeof brandImport;
   brandPersonas: typeof brandPersonas;
   brands: typeof brands;
   http: typeof http;
+  submissions: typeof submissions;
   waitlist: typeof waitlist;
 }>;
 

@@ -15,7 +15,7 @@ import { api } from '@/convex/_generated/api'
 import type { Doc, Id } from '@/convex/_generated/dataModel'
 import { cn } from '@/lib/utils'
 
-import { DAYS_OF_WEEK, EMOJI_USAGE, MEDIA_TYPES, TIME_OPTIONS } from '../data'
+import { DAYS_OF_WEEK, EMOJI_USAGE, MEDIA_TYPES } from '../data'
 import { Field, Select, TextInput, Textarea } from '../fields'
 import { CHANNEL_LABEL, type Channel } from '../types'
 import { useAutosave, type SaveStatus } from '../use-autosave'
@@ -27,7 +27,6 @@ type Props = {
 }
 
 const MEDIA_OPTIONS = MEDIA_TYPES.map((m) => ({ value: m, label: m }))
-const TIME_SELECT = TIME_OPTIONS.map((t) => ({ value: t, label: t }))
 const GOAL_PRESETS = [
 	'Awareness',
 	'Engagement',
@@ -76,11 +75,13 @@ export function StepContentBuckets({ brandId, channels, onStatus }: Props) {
 				Add a few per channel — you can refine them anytime.
 			</p>
 
-			<ChannelPills
-				channels={channels}
-				active={activeChannel}
-				onChange={setActiveChannel}
-			/>
+			{channels.length > 1 && (
+				<ChannelPills
+					channels={channels}
+					active={activeChannel}
+					onChange={setActiveChannel}
+				/>
+			)}
 
 			<div className="space-y-3">
 				<AnimatePresence initial={false}>
@@ -299,10 +300,15 @@ function BucketAccordion({
 				{open && (
 					<motion.div
 						initial={{ height: 0, opacity: 0 }}
-						animate={{ height: 'auto', opacity: 1 }}
-						exit={{ height: 0, opacity: 0 }}
+						animate={{
+							height: 'auto',
+							opacity: 1,
+							overflow: 'visible',
+							transitionEnd: { overflow: 'visible' },
+						}}
+						exit={{ height: 0, opacity: 0, overflow: 'hidden' }}
 						transition={{ duration: 0.2 }}
-						className="overflow-hidden"
+						style={{ overflow: 'hidden' }}
 					>
 						<div className="space-y-6 border-t border-gray-100 px-5 py-6 sm:px-6">
 							<div>
@@ -381,41 +387,213 @@ function BucketAccordion({
 								optional
 								icon={<Calendar className="size-3.5" />}
 							>
-								<div className="grid grid-cols-7 gap-1.5">
-									{DAYS_OF_WEEK.map((d) => {
-										const isOn = scheduleDays.includes(d.value)
-										return (
-											<button
-												key={d.value}
-												type="button"
-												onClick={() => toggleDay(d.value)}
-												className={cn(
-													'rounded-lg py-2 text-xs font-medium transition-colors',
-													isOn
-														? 'bg-primary text-white shadow-sm shadow-primary/20'
-														: 'bg-gray-50 text-gray-500 hover:bg-gray-100',
-												)}
-											>
-												{d.label}
-											</button>
-										)
-									})}
-								</div>
-								<div className="@md/col:max-w-[220px]">
-									<Field label="Preferred time">
-										<Select
-											value={scheduleTime}
-											onChange={setScheduleTime}
-											options={TIME_SELECT}
-											placeholder="Any time"
-										/>
-									</Field>
-								</div>
+								<SchedulePicker
+									scheduleDays={scheduleDays}
+									setScheduleDays={setScheduleDays}
+									scheduleTime={scheduleTime}
+									setScheduleTime={setScheduleTime}
+									toggleDay={toggleDay}
+								/>
 							</Section>
 						</div>
 					</motion.div>
 				)}
 			</AnimatePresence>
+		</div>
+	)
+}
+
+const SCHEDULE_PRESETS = [
+	{ label: 'Weekdays', days: ['mon', 'tue', 'wed', 'thu', 'fri'] },
+	{ label: 'MWF', days: ['mon', 'wed', 'fri'] },
+	{ label: 'TTS', days: ['tue', 'thu', 'sat'] },
+	{ label: 'Daily', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] },
+] as const
+
+const TIME_PRESETS = [
+	{ label: 'Morning', value: '09:00' },
+	{ label: 'Midday', value: '12:00' },
+	{ label: 'Afternoon', value: '15:00' },
+	{ label: 'Evening', value: '18:00' },
+] as const
+
+function arraysMatch(a: string[], b: readonly string[]) {
+	if (a.length !== b.length) return false
+	const sorted = [...a].sort()
+	const target = [...b].sort()
+	return sorted.every((v, i) => v === target[i])
+}
+
+function SchedulePicker({
+	scheduleDays,
+	setScheduleDays,
+	scheduleTime,
+	setScheduleTime,
+	toggleDay,
+}: {
+	scheduleDays: string[]
+	setScheduleDays: (d: string[]) => void
+	scheduleTime: string
+	setScheduleTime: (t: string) => void
+	toggleDay: (day: string) => void
+}) {
+	const activePreset = SCHEDULE_PRESETS.find((p) =>
+		arraysMatch(scheduleDays, p.days),
+	)
+	const isPresetTime = TIME_PRESETS.some((t) => t.value === scheduleTime)
+	const [customDraft, setCustomDraft] = useState(
+		!isPresetTime && scheduleTime ? scheduleTime : '',
+	)
+
+	const handleCustomChange = (raw: string) => {
+		const cleaned = raw.replace(/[^\d:]/g, '')
+		if (cleaned.length > 5) return
+		setCustomDraft(cleaned)
+		if (/^\d{2}:\d{2}$/.test(cleaned)) {
+			setScheduleTime(cleaned)
+		}
+	}
+
+	const handleCustomFocus = () => {
+		if (isPresetTime) setCustomDraft('')
+	}
+
+	return (
+		<div className="space-y-3">
+			<div className="inline-flex overflow-hidden rounded-xl border border-gray-200 bg-white">
+				<div className="flex flex-col">
+					<div className="flex gap-1.5 border-b border-gray-100 px-3 py-2.5">
+						{SCHEDULE_PRESETS.map((p) => {
+							const isActive = activePreset?.label === p.label
+							return (
+								<button
+									key={p.label}
+									type="button"
+									onClick={() =>
+										setScheduleDays(isActive ? [] : [...p.days])
+									}
+									className={cn(
+										'rounded-full px-2.5 py-1 text-[11px] font-medium transition-all',
+										isActive
+											? 'bg-primary text-white'
+											: 'text-gray-400 hover:bg-gray-100 hover:text-gray-600',
+									)}
+								>
+									{p.label}
+								</button>
+							)
+						})}
+					</div>
+
+					<div className="grid grid-cols-7">
+						{DAYS_OF_WEEK.map((d, i) => (
+							<span
+								key={`label-${d.value}`}
+								className={cn(
+									'border-b border-gray-100 py-1.5 text-center text-[10px] font-medium uppercase tracking-wider text-gray-400',
+									i > 0 && 'border-l border-gray-100',
+								)}
+							>
+								{d.label.slice(0, 2)}
+							</span>
+						))}
+						{DAYS_OF_WEEK.map((d, i) => {
+							const isOn = scheduleDays.includes(d.value)
+							return (
+								<button
+									key={d.value}
+									type="button"
+									onClick={() => toggleDay(d.value)}
+									aria-pressed={isOn}
+									aria-label={`Toggle ${d.label}`}
+									className={cn(
+										'flex h-10 w-12 items-center justify-center text-sm font-semibold transition-all',
+										i > 0 && 'border-l border-gray-100',
+										isOn
+											? 'bg-primary/10 text-primary'
+											: 'text-gray-300 hover:bg-gray-50 hover:text-gray-500',
+									)}
+								>
+									{isOn ? '\u2713' : '\u2022'}
+								</button>
+							)
+						})}
+					</div>
+				</div>
+
+				<div className="flex w-[140px] flex-col border-l border-gray-200">
+					<span className="border-b border-gray-100 px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400">
+						Time
+					</span>
+					<div className="flex flex-1 flex-col py-1">
+						{TIME_PRESETS.map((t) => {
+							const isActive = scheduleTime === t.value
+							return (
+								<button
+									key={t.value}
+									type="button"
+									onClick={() =>
+										setScheduleTime(
+											isActive ? '' : t.value,
+										)
+									}
+									className={cn(
+										'flex items-center justify-between px-3 py-1.5 text-xs font-medium transition-all',
+										isActive
+											? 'bg-primary/10 text-primary'
+											: 'text-gray-500 hover:bg-gray-50 hover:text-gray-700',
+									)}
+								>
+									<span>{t.label}</span>
+									<span className="tabular-nums opacity-50">
+										{t.value}
+									</span>
+								</button>
+							)
+						})}
+						<div
+							className={cn(
+								'flex items-center justify-between px-3 py-1.5 transition-all',
+								!isPresetTime && scheduleTime
+									? 'bg-primary/10'
+									: '',
+							)}
+						>
+							<span
+								className={cn(
+									'text-xs font-medium',
+									!isPresetTime && scheduleTime
+										? 'text-primary'
+										: 'text-gray-500',
+								)}
+							>
+								Custom
+							</span>
+							<input
+								type="text"
+								inputMode="numeric"
+								placeholder="HH:MM"
+								value={customDraft}
+								onFocus={handleCustomFocus}
+								onChange={(e) => handleCustomChange(e.target.value)}
+								className={cn(
+									'w-14 bg-transparent text-right text-xs tabular-nums outline-none placeholder:text-gray-300',
+									!isPresetTime && scheduleTime
+										? 'text-primary'
+										: 'text-gray-500',
+								)}
+							/>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			{scheduleDays.length > 0 && (
+				<p className="text-xs text-gray-400">
+					{scheduleDays.length}× per week
+					{scheduleTime ? ` around ${scheduleTime}` : ''}
+				</p>
+			)}
 		</div>
 	)
 }
@@ -438,11 +616,11 @@ function Section({
 				<span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">
 					{label}
 				</span>
-				{optional && (
-					<span className="text-[10px] font-medium text-gray-300">
-						Optional
-					</span>
-				)}
+			{optional && (
+				<span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-400">
+					Optional
+				</span>
+			)}
 			</div>
 			{children}
 		</div>

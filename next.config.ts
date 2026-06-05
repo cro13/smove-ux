@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
 				protocol: 'https',
 				hostname: 'smove.ai',
 			},
+			{
+				protocol: 'https',
+				hostname: '*.convex.cloud',
+			},
 		],
 	},
 }

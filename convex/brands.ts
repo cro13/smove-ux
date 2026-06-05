@@ -198,6 +198,8 @@ export const updateOnboarding = mutation({
 			),
 		),
 		channels: v.optional(v.array(CHANNEL)),
+		ingestKey: v.optional(v.string()),
+		approvalPhone: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const { brand } = await assertBrandOwner(ctx, args.brandId)
@@ -216,6 +218,24 @@ export const updateOnboarding = mutation({
 		if (args.referencePosts !== undefined)
 			patch.referencePosts = args.referencePosts
 		if (args.channels !== undefined) patch.channels = args.channels
+		if (args.approvalPhone !== undefined) {
+			patch.approvalPhone = args.approvalPhone.replace(/\D/g, '') || undefined
+		}
+		if (args.ingestKey !== undefined) {
+			const key = args.ingestKey.toUpperCase().trim()
+			if (key) {
+				const existing = await ctx.db
+					.query('brands')
+					.withIndex('by_ingest_key', (q) => q.eq('ingestKey', key))
+					.unique()
+				if (existing && existing._id !== brand._id) {
+					throw new Error('This ingest key is already taken.')
+				}
+				patch.ingestKey = key
+			} else {
+				patch.ingestKey = undefined
+			}
+		}
 
 		await ctx.db.patch(brand._id, patch)
 	},

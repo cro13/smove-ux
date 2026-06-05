@@ -42,11 +42,13 @@ export function StepPersonas({ brandId, channels, onStatus }: Props) {
 				Define who you want to reach on each channel.
 			</p>
 
-			<ChannelTabs
-				channels={channels}
-				active={activeChannel}
-				onChange={setActiveChannel}
-			/>
+			{channels.length > 1 && (
+				<ChannelTabs
+					channels={channels}
+					active={activeChannel}
+					onChange={setActiveChannel}
+				/>
+			)}
 
 			<div className="space-y-4">
 				<AnimatePresence initial={false}>

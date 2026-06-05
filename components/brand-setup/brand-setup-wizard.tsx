@@ -95,7 +95,11 @@ export function BrandSetupWizard({ brandId, onExit }: Props) {
 			setSubmitting(true)
 			try {
 				await completeOnboarding({ brandId })
-				router.push(`/brands/${brandId}`)
+				if (onExit) {
+					onExit()
+				} else {
+					router.push(`/brands/${brandId}`)
+				}
 			} catch (err) {
 				console.error('Could not complete onboarding', err)
 				setSubmitting(false)

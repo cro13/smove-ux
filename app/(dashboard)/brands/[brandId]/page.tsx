@@ -11,6 +11,7 @@ import { BrandHeader } from '@/components/dashboard/brand/brand-header'
 import { ChannelsSection } from '@/components/dashboard/brand/channels-section'
 import { InsightsPanel } from '@/components/dashboard/brand/insights-panel'
 import { QuickActions } from '@/components/dashboard/brand/quick-actions'
+import { SubmissionsSection } from '@/components/dashboard/brand/submissions-section'
 import { STEPS, type Channel } from '@/components/brand-setup/types'
 
 import { api } from '../../../../convex/_generated/api'
@@ -61,6 +62,7 @@ export default function BrandDetailPage() {
 				<QuickActions brandId={brand._id} />
 				<AnalyticsStrip />
 				<InsightsPanel />
+				<SubmissionsSection brandId={brand._id} />
 			</div>
 		</div>
 	)

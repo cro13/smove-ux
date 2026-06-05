@@ -171,7 +171,33 @@ export default defineSchema({
 				),
 			),
 		),
-	}).index('by_agency', ['agencyId']),
+		ingestKey: v.optional(v.string()),
+		approvalPhone: v.optional(v.string()),
+	})
+		.index('by_agency', ['agencyId'])
+		.index('by_ingest_key', ['ingestKey']),
+
+	submissions: defineTable({
+		brandId: v.optional(v.id('brands')),
+		agencyId: v.id('agencies'),
+		senderPhone: v.string(),
+		senderName: v.optional(v.string()),
+		messageBody: v.string(),
+		imageStorageId: v.optional(v.id('_storage')),
+		status: v.union(
+			v.literal('pending'),
+			v.literal('processing'),
+			v.literal('published'),
+			v.literal('rejected'),
+		),
+		approvalMessageId: v.optional(v.string()),
+		rawPayload: v.optional(v.string()),
+		createdAt: v.number(),
+	})
+		.index('by_brand', ['brandId'])
+		.index('by_agency', ['agencyId'])
+		.index('by_status', ['status'])
+		.index('by_approval_message', ['approvalMessageId']),
 
 	brandPersonas: defineTable({
 		brandId: v.id('brands'),
