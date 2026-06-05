@@ -1,3 +1,4 @@
+import { Id } from './_generated/dataModel'
 import { v } from 'convex/values'
 
 import { internal } from './_generated/api'
@@ -129,10 +130,10 @@ export const handleApprovalReply = internalMutation({
 
 		if (!submissionId) return
 
-		const submission = await ctx.db.get(submissionId as any)
+		const submission = await ctx.db.get(submissionId as Id<'submissions'>)
 		if (!submission || submission.status !== 'processing') return
 
 		const newStatus = action === 'approve' ? 'published' : 'rejected'
-		await ctx.db.patch(submission._id, { status: newStatus as any })
+		await ctx.db.patch(submission._id, { status: newStatus })
 	},
 })
