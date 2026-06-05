@@ -171,6 +171,23 @@ export default defineSchema({
 				),
 			),
 		),
+		imageStyleAnalysis: v.optional(
+			v.object({
+				profile: v.string(),
+				analyzedAt: v.number(),
+				analyzedImageCount: v.number(),
+			}),
+		),
+
+		postTemplate: v.optional(
+			v.object({
+				imageStorageId: v.id('_storage'),
+				metadata: v.string(),
+				interpretation: v.optional(v.string()),
+				interpretedAt: v.optional(v.number()),
+			}),
+		),
+
 		ingestKey: v.optional(v.string()),
 		approvalPhone: v.optional(v.string()),
 	})
@@ -246,6 +263,25 @@ export default defineSchema({
 	})
 		.index('by_brand', ['brandId'])
 		.index('by_brand_channel', ['brandId', 'channel']),
+
+	generatedPosts: defineTable({
+		submissionId: v.id('submissions'),
+		brandId: v.id('brands'),
+		status: v.union(
+			v.literal('analyzing'),
+			v.literal('generating_image'),
+			v.literal('generating_copy'),
+			v.literal('completed'),
+			v.literal('failed'),
+		),
+		analysis: v.optional(v.string()),
+		generatedImageStorageId: v.optional(v.id('_storage')),
+		generatedCopy: v.optional(v.string()),
+		error: v.optional(v.string()),
+		createdAt: v.number(),
+	})
+		.index('by_submission', ['submissionId'])
+		.index('by_brand', ['brandId']),
 
 	accessCodes: defineTable({
 		code: v.string(),

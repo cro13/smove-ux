@@ -10,12 +10,14 @@ import {
 	Loader2,
 	MessageSquare,
 	Send,
+	Sparkles,
 	X,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 
+import { GeneratedPostCard } from '@/components/dashboard/brand/generated-post-card'
 import { Badge } from '@/components/ui/badge'
 import { api } from '@/convex/_generated/api'
 import type { Id } from '@/convex/_generated/dataModel'
@@ -24,14 +26,20 @@ type ViewMode = 'list' | 'feed'
 
 type Props = {
 	brandId: Id<'brands'>
+	hasTemplate?: boolean
+	hasStyleAnalysis?: boolean
 }
 
-export function SubmissionsSection({ brandId }: Props) {
+export function SubmissionsSection({ brandId, hasTemplate, hasStyleAnalysis }: Props) {
 	const submissions = useQuery(api.submissions.listByBrand, { brandId })
 	const sendForApproval = useAction(api.approvals.sendForApproval)
+	const generatePost = useAction(api.ai.generatePost.generatePost)
 	const [viewMode, setViewMode] = useState<ViewMode>('feed')
 	const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 	const [sendingId, setSendingId] = useState<Id<'submissions'> | null>(null)
+	const [generatingId, setGeneratingId] = useState<Id<'submissions'> | null>(null)
+
+	const canGenerate = !!hasTemplate && !!hasStyleAnalysis
 
 	const handleSendForApproval = async (submissionId: Id<'submissions'>) => {
 		setSendingId(submissionId)
@@ -41,6 +49,17 @@ export function SubmissionsSection({ brandId }: Props) {
 			console.error('Failed to send for approval:', err)
 		} finally {
 			setSendingId(null)
+		}
+	}
+
+	const handleGeneratePost = async (submissionId: Id<'submissions'>) => {
+		setGeneratingId(submissionId)
+		try {
+			await generatePost({ submissionId, brandId })
+		} catch (err) {
+			console.error('Failed to generate post:', err)
+		} finally {
+			setGeneratingId(null)
 		}
 	}
 
@@ -101,6 +120,9 @@ export function SubmissionsSection({ brandId }: Props) {
 							onImageClick={setLightboxUrl}
 							onSendForApproval={handleSendForApproval}
 							isSending={sendingId === submission._id}
+							canGenerate={canGenerate}
+							onGeneratePost={handleGeneratePost}
+							isGenerating={generatingId === submission._id}
 						/>
 					))}
 				</div>
@@ -219,6 +241,9 @@ type SubmissionFeedCardProps = {
 	onImageClick: (url: string) => void
 	onSendForApproval: (id: Id<'submissions'>) => void
 	isSending: boolean
+	canGenerate: boolean
+	onGeneratePost: (id: Id<'submissions'>) => void
+	isGenerating: boolean
 }
 
 function SubmissionFeedCard({
@@ -226,6 +251,9 @@ function SubmissionFeedCard({
 	onImageClick,
 	onSendForApproval,
 	isSending,
+	canGenerate,
+	onGeneratePost,
+	isGenerating,
 }: SubmissionFeedCardProps) {
 	const statusConfig = {
 		pending: { label: 'Pending', className: 'bg-gray-100 text-gray-600' },
@@ -288,25 +316,47 @@ function SubmissionFeedCard({
 					</span>
 				</div>
 
-				<button
-					type="button"
-					onClick={() => onSendForApproval(submission._id)}
-					disabled={isSending}
-					className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
-					aria-label="Send for approval"
-					tabIndex={0}
-				>
-					{isSending ? (
-						<Loader2 className="size-3.5 animate-spin" />
-					) : (
-						<Send className="size-3.5" />
+				<div className="mt-3 flex gap-2">
+					<button
+						type="button"
+						onClick={() => onSendForApproval(submission._id)}
+						disabled={isSending}
+						className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+						aria-label="Send for approval"
+						tabIndex={0}
+					>
+						{isSending ? (
+							<Loader2 className="size-3.5 animate-spin" />
+						) : (
+							<Send className="size-3.5" />
+						)}
+						{isSending
+							? 'Sending...'
+							: submission.status === 'pending'
+								? 'Approve'
+								: 'Re-approve'}
+					</button>
+
+					{canGenerate && (
+						<button
+							type="button"
+							onClick={() => onGeneratePost(submission._id)}
+							disabled={isGenerating}
+							className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+							aria-label="Generate post"
+							tabIndex={0}
+						>
+							{isGenerating ? (
+								<Loader2 className="size-3.5 animate-spin" />
+							) : (
+								<Sparkles className="size-3.5" />
+							)}
+							{isGenerating ? 'Generating...' : 'Generate Post'}
+						</button>
 					)}
-					{isSending
-						? 'Sending...'
-						: submission.status === 'pending'
-							? 'Send for Approval'
-							: 'Resend for Approval'}
-				</button>
+				</div>
+
+				<GeneratedPostCard submissionId={submission._id} />
 			</div>
 		</div>
 	)

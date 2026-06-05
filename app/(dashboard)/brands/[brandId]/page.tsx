@@ -62,7 +62,11 @@ export default function BrandDetailPage() {
 				<QuickActions brandId={brand._id} />
 				<AnalyticsStrip />
 				<InsightsPanel />
-				<SubmissionsSection brandId={brand._id} />
+				<SubmissionsSection
+					brandId={brand._id}
+					hasTemplate={!!brand.postTemplate?.interpretation}
+					hasStyleAnalysis={!!brand.imageStyleAnalysis}
+				/>
 			</div>
 		</div>
 	)

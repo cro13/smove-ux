@@ -4,13 +4,12 @@ import { useMutation } from 'convex/react'
 import { motion } from 'framer-motion'
 import { Loader2, Upload, X } from 'lucide-react'
 import Image from 'next/image'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { api } from '@/convex/_generated/api'
 import type { Id } from '@/convex/_generated/dataModel'
 import { cn } from '@/lib/utils'
 
-const MAX_SIZE = 2 * 1024 * 1024
 const IMAGE_TYPES = new Set([
 	'image/png',
 	'image/jpeg',
@@ -28,6 +27,7 @@ type UploadZoneProps = {
 	onRemove?: () => void
 	background?: 'light' | 'dark'
 	aspectRatio?: 'square' | 'wide'
+	maxSizeMb?: number
 }
 
 export function UploadZone({
@@ -38,12 +38,21 @@ export function UploadZone({
 	onRemove,
 	background = 'light',
 	aspectRatio = 'square',
+	maxSizeMb = 2,
 }: UploadZoneProps) {
 	const inputRef = useRef<HTMLInputElement>(null)
 	const [dragging, setDragging] = useState(false)
 	const [uploading, setUploading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [localPreview, setLocalPreview] = useState<string | null>(null)
 	const generateUrl = useMutation(api.brands.generateBrandUploadUrl)
+	const maxSize = maxSizeMb * 1024 * 1024
+
+	useEffect(() => {
+		return () => {
+			if (localPreview) URL.revokeObjectURL(localPreview)
+		}
+	}, [localPreview])
 
 	const handleFile = async (file: File) => {
 		setError(null)
@@ -51,11 +60,12 @@ export function UploadZone({
 			setError('Use PNG, JPG, SVG, or WebP.')
 			return
 		}
-		if (file.size > MAX_SIZE) {
-			setError('Max 2 MB.')
+		if (file.size > maxSize) {
+			setError(`Max ${maxSizeMb} MB.`)
 			return
 		}
 		setUploading(true)
+		const preview = URL.createObjectURL(file)
 		try {
 			const uploadUrl = await generateUrl()
 			const res = await fetch(uploadUrl, {
@@ -65,8 +75,11 @@ export function UploadZone({
 			})
 			if (!res.ok) throw new Error('Upload failed')
 			const { storageId } = (await res.json()) as { storageId: Id<'_storage'> }
+			if (localPreview) URL.revokeObjectURL(localPreview)
+			setLocalPreview(preview)
 			onUploaded(storageId, file.name)
 		} catch {
+			URL.revokeObjectURL(preview)
 			setError('Upload failed. Try again.')
 		} finally {
 			setUploading(false)
@@ -105,32 +118,35 @@ export function UploadZone({
 					dragging && 'border-primary bg-blue-100/50 scale-[1.01]',
 				)}
 			>
-				{currentUrl ? (
-					<>
-						<div className="relative h-full w-full">
-							<Image
-								src={currentUrl}
-								alt={label}
-								fill
-								className="object-contain p-2"
-								unoptimized
-							/>
-						</div>
-						{onRemove && (
-							<button
-								type="button"
-								onClick={(e) => {
-									e.stopPropagation()
-									onRemove()
-								}}
-								className="absolute top-1.5 right-1.5 rounded-full bg-white/90 p-1 text-gray-600 shadow-sm transition-colors hover:bg-white hover:text-red-500"
-								aria-label={`Remove ${label}`}
-							>
-								<X className="size-3.5" />
-							</button>
-						)}
-					</>
-				) : uploading ? (
+			{(currentUrl || localPreview) ? (
+				<>
+					<div className="relative h-full w-full">
+						{/* eslint-disable-next-line @next/next/no-img-element */}
+						<img
+							src={currentUrl ?? localPreview!}
+							alt={label}
+							className="absolute inset-0 h-full w-full object-contain p-2"
+						/>
+					</div>
+					{onRemove && (
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation()
+								if (localPreview) {
+									URL.revokeObjectURL(localPreview)
+									setLocalPreview(null)
+								}
+								onRemove()
+							}}
+							className="absolute top-1.5 right-1.5 rounded-full bg-white/90 p-1 text-gray-600 shadow-sm transition-colors hover:bg-white hover:text-red-500"
+							aria-label={`Remove ${label}`}
+						>
+							<X className="size-3.5" />
+						</button>
+					)}
+				</>
+			) : uploading ? (
 					<Loader2 className="size-6 animate-spin text-primary" />
 				) : (
 					<>

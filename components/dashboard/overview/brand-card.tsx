@@ -2,8 +2,9 @@
 
 import { useMutation } from 'convex/react'
 import { ArrowRight, ArrowUpRight, MoreHorizontal, Trash2 } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
-import { ReactNode, useState } from 'react'
+import { type ReactNode, useState } from 'react'
 
 import {
 	FacebookGlyph,
@@ -34,7 +35,7 @@ import type { Doc } from '@/convex/_generated/dataModel'
 import { cn } from '@/lib/utils'
 
 interface BrandCardProps {
-	brand: Doc<'brands'>
+	brand: Doc<'brands'> & { logoUrl?: string | null }
 	view?: 'grid' | 'list'
 }
 
@@ -135,12 +136,24 @@ export function BrandCard({ brand, view = 'grid' }: BrandCardProps) {
 					}
 					className="group flex items-center gap-4 rounded-xl border border-black/[0.06] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all hover:border-black/10 hover:shadow-[0_4px_12px_rgba(16,24,40,0.07)]"
 				>
-					<span
-						className="flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold text-white"
-						style={{ backgroundColor: accent ?? '#1A1A1A' }}
-					>
-						{initial}
-					</span>
+					{brand.logoUrl ? (
+						<span className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
+							<Image
+								src={brand.logoUrl}
+								alt={displayName}
+								fill
+								className="object-contain p-1"
+								unoptimized
+							/>
+						</span>
+					) : (
+						<span
+							className="flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold text-white"
+							style={{ backgroundColor: accent ?? '#1A1A1A' }}
+						>
+							{initial}
+						</span>
+					)}
 
 					<div className="min-w-0 flex-1">
 						<p
@@ -219,12 +232,24 @@ export function BrandCard({ brand, view = 'grid' }: BrandCardProps) {
 				className="group flex flex-col rounded-[1.75rem] bg-white p-4 shadow-[0_2px_16px_rgba(16,24,40,0.07)] transition-all hover:shadow-[0_8px_28px_rgba(16,24,40,0.11)]"
 			>
 				<div className="flex items-start justify-between">
-					<span
-						className="flex size-[3.75rem] shrink-0 items-center justify-center rounded-2xl text-2xl font-semibold"
-						style={{ backgroundColor: avatarBg, color: avatarColor }}
-					>
-						{initial}
-					</span>
+					{brand.logoUrl ? (
+						<span className="relative flex size-[3.75rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.04)]">
+							<Image
+								src={brand.logoUrl}
+								alt={displayName}
+								fill
+								className="object-contain p-2"
+								unoptimized
+							/>
+						</span>
+					) : (
+						<span
+							className="flex size-[3.75rem] shrink-0 items-center justify-center rounded-2xl text-2xl font-semibold"
+							style={{ backgroundColor: avatarBg, color: avatarColor }}
+						>
+							{initial}
+						</span>
+					)}
 					{brandMenu}
 				</div>
 

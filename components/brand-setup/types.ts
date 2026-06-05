@@ -21,7 +21,7 @@ export const CHANNEL_LABEL: Record<Channel, string> = {
 	facebook: 'Facebook',
 }
 
-export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
 export const STEPS = [
 	{ id: 1, label: 'General', headline: 'General Information' },
@@ -31,7 +31,8 @@ export const STEPS = [
 	{ id: 5, label: 'Channels', headline: 'Communication Channels' },
 	{ id: 6, label: 'Personas', headline: 'Target Personas' },
 	{ id: 7, label: 'Content', headline: 'Content Buckets' },
-	{ id: 8, label: 'Review', headline: 'Overview' },
+	{ id: 8, label: 'Templates', headline: 'Post Template' },
+	{ id: 9, label: 'Review', headline: 'Overview' },
 ] as const
 
 export type GeneralInfo = {

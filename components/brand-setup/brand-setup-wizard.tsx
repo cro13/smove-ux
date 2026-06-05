@@ -17,6 +17,7 @@ import { StepGeneralInfo } from '@/components/brand-setup/steps/step-general'
 import { StepPersonas } from '@/components/brand-setup/steps/step-personas'
 import { StepReview } from '@/components/brand-setup/steps/step-review'
 import { StepStory } from '@/components/brand-setup/steps/step-story'
+import { StepTemplates } from '@/components/brand-setup/steps/step-templates'
 import { StepVisuals } from '@/components/brand-setup/steps/step-visuals'
 import { StepVoice } from '@/components/brand-setup/steps/step-voice'
 import { STEPS, type BrandPreviewState } from '@/components/brand-setup/types'
@@ -288,13 +289,19 @@ export function BrandSetupWizard({ brandId, onExit }: Props) {
 										onStatus={updateStatus}
 									/>
 								)}
-								{step === 8 && (
-									<StepReview
-										brand={brand}
-										brandId={brandId}
-										onJump={jumpTo}
-									/>
-								)}
+							{step === 8 && (
+								<StepTemplates
+									brand={brand}
+									brandId={brandId}
+								/>
+							)}
+							{step === 9 && (
+								<StepReview
+									brand={brand}
+									brandId={brandId}
+									onJump={jumpTo}
+								/>
+							)}
 							</motion.section>
 						</AnimatePresence>
 

@@ -1,6 +1,10 @@
 'use client'
 
+import { useAction } from 'convex/react'
+import { CheckCircle2, Loader2, RefreshCw, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+
+import { api } from '@/convex/_generated/api'
 
 import { AssetCategory } from '../asset-category'
 import { ColorSwatchList, GradientList } from '../color-picker'
@@ -21,6 +25,10 @@ type Props = {
 }
 
 export function StepVisuals({ brand, onSave, onPreviewChange }: Props) {
+	const extractStyle = useAction(api.ai.extractImageStyle.extractImageStyle)
+	const [extracting, setExtracting] = useState(false)
+	const [extractError, setExtractError] = useState<string | null>(null)
+
 	const v = brand.visualIdentity
 	const [identity, setIdentity] = useState<VisualIdentity>({
 		logoStorageId: v?.logoStorageId,
@@ -54,6 +62,26 @@ export function StepVisuals({ brand, onSave, onPreviewChange }: Props) {
 		key: K,
 		value: VisualIdentity[K],
 	) => setIdentity((s) => ({ ...s, [key]: value }))
+
+	const handleExtractStyle = async () => {
+		setExtracting(true)
+		setExtractError(null)
+		try {
+			await extractStyle({ brandId: brand._id })
+		} catch (err) {
+			setExtractError(
+				err instanceof Error ? err.message : 'Style extraction failed.',
+			)
+		} finally {
+			setExtracting(false)
+		}
+	}
+
+	const photoCount = identity.photographyStorageIds?.length ?? 0
+	const hasAnalysis = !!brand.imageStyleAnalysis
+	const analysisOutdated =
+		hasAnalysis &&
+		photoCount !== brand.imageStyleAnalysis!.analyzedImageCount
 
 	return (
 		<div className="space-y-7">
@@ -179,6 +207,139 @@ export function StepVisuals({ brand, onSave, onPreviewChange }: Props) {
 					/>
 				</div>
 			</Card>
+
+			{photoCount > 0 && (
+				<Card
+					title="Photography Style Analysis"
+					subtitle="AI extracts a reproducible style profile from your photography assets for image generation."
+				>
+					{hasAnalysis && !extracting && (
+						<div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+							<div className="mb-2 flex items-center gap-2">
+								<CheckCircle2 className="size-4 text-emerald-600" />
+								<span className="text-sm font-medium text-emerald-800">
+									Style profile extracted
+								</span>
+								<span className="text-xs text-emerald-600">
+									({brand.imageStyleAnalysis!.analyzedImageCount} photos analyzed)
+								</span>
+							</div>
+							{(() => {
+								try {
+									const profile = JSON.parse(brand.imageStyleAnalysis!.profile)
+									return (
+										<div className="space-y-2 text-xs text-gray-600">
+											<ProfileField label="Aesthetic" value={profile.aesthetic_signature} />
+											<ProfileField label="Tradition" value={profile.dominant_aesthetic} />
+											<ProfileField label="Mood" value={profile.mood} />
+											{profile.lighting && (
+												<ProfileGroup label="Lighting">
+													<ProfileField label="Type" value={profile.lighting.type} />
+													<ProfileField label="Direction" value={profile.lighting.direction} />
+													<ProfileField label="Quality" value={profile.lighting.quality} />
+													<ProfileField label="Notable" value={profile.lighting.notable} />
+												</ProfileGroup>
+											)}
+											{profile.camera && (
+												<ProfileGroup label="Camera">
+													<ProfileField label="Lens" value={profile.camera.lens} />
+													<ProfileField label="Focus" value={profile.camera.focus} />
+													<ProfileField label="Angle" value={profile.camera.angle} />
+												</ProfileGroup>
+											)}
+											{profile.color_grading && (
+												<ProfileGroup label="Color Grading">
+													<ProfileField label="Temperature" value={profile.color_grading.temperature} />
+													<ProfileField label="Tonal Style" value={profile.color_grading.tonal_style} />
+													<ProfileField label="Saturation" value={profile.color_grading.saturation} />
+												</ProfileGroup>
+											)}
+											{profile.film_stock && (
+												<ProfileGroup label="Film Stock">
+													<ProfileField label="Type" value={profile.film_stock.type} />
+													<ProfileField label="Grain" value={profile.film_stock.grain} />
+													<ProfileField label="Finish" value={profile.film_stock.finish} />
+												</ProfileGroup>
+											)}
+											{profile.texture && (
+												<ProfileGroup label="Texture">
+													<ProfileField label="Materiality" value={profile.texture.materiality} />
+													<ProfileField label="Subject-specific" value={profile.texture.subject_specific} />
+												</ProfileGroup>
+											)}
+											<ProfileField label="Imperfections" value={profile.imperfection_signals} />
+											<ProfileField label="Avoid" value={profile.avoid} />
+										</div>
+									)
+								} catch {
+									return null
+								}
+							})()}
+							{analysisOutdated && (
+								<p className="mt-2 text-xs text-amber-600">
+									Photos changed since last analysis. Consider re-analyzing.
+								</p>
+							)}
+						</div>
+					)}
+
+					{extractError && (
+						<p className="mb-3 text-xs text-red-500">{extractError}</p>
+					)}
+
+					<button
+						type="button"
+						onClick={handleExtractStyle}
+						disabled={extracting}
+						className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+						aria-label={hasAnalysis ? 'Re-analyze photography style' : 'Analyze photography style'}
+					>
+						{extracting ? (
+							<>
+								<Loader2 className="size-4 animate-spin" />
+								Analyzing...
+							</>
+						) : hasAnalysis ? (
+							<>
+								<RefreshCw className="size-4" />
+								Re-analyze
+							</>
+						) : (
+							<>
+								<Sparkles className="size-4" />
+								Extract Style
+							</>
+						)}
+					</button>
+				</Card>
+			)}
+		</div>
+	)
+}
+
+function ProfileField({ label, value }: { label: string; value?: string }) {
+	if (!value) return null
+	return (
+		<p>
+			<span className="font-medium text-gray-700">{label}: </span>
+			{value}
+		</p>
+	)
+}
+
+function ProfileGroup({
+	label,
+	children,
+}: {
+	label: string
+	children: React.ReactNode
+}) {
+	return (
+		<div className="mt-1 rounded-lg border border-gray-100 bg-white/60 p-2.5">
+			<p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+				{label}
+			</p>
+			<div className="space-y-1">{children}</div>
 		</div>
 	)
 }

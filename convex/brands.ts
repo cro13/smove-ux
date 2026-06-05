@@ -42,10 +42,21 @@ export const listByAgency = query({
 			.unique()
 		if (!agency) return []
 
-		return await ctx.db
+		const brands = await ctx.db
 			.query('brands')
 			.withIndex('by_agency', (q) => q.eq('agencyId', agency._id))
 			.collect()
+
+		return await Promise.all(
+			brands.map(async (brand) => {
+				const v = brand.visualIdentity
+				const logoId = v?.logoStorageId ?? v?.darkLogoStorageId
+				const logoUrl = logoId
+					? await ctx.storage.getUrl(logoId)
+					: null
+				return { ...brand, logoUrl }
+			}),
+		)
 	},
 })
 
@@ -318,7 +329,7 @@ export const applyImport = internalMutation({
 		const patch: Record<string, unknown> = {
 			importSource: args.source,
 			importedAt: Date.now(),
-			onboardingStep: 8,
+			onboardingStep: 9,
 		}
 		if (args.name !== undefined) patch.name = args.name
 		if (args.website !== undefined) patch.website = args.website
@@ -372,13 +383,70 @@ export const remove = mutation({
 	},
 })
 
+export const savePostTemplate = mutation({
+	args: {
+		brandId: v.id('brands'),
+		imageStorageId: v.id('_storage'),
+		metadata: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const { brand } = await assertBrandOwner(ctx, args.brandId)
+		const existing = brand.postTemplate
+		await ctx.db.patch(brand._id, {
+			postTemplate: {
+				imageStorageId: args.imageStorageId,
+				metadata: args.metadata,
+				interpretation: existing?.interpretation,
+				interpretedAt: existing?.interpretedAt,
+			},
+		})
+	},
+})
+
+export const saveImageStyleAnalysis = internalMutation({
+	args: {
+		brandId: v.id('brands'),
+		profile: v.string(),
+		analyzedImageCount: v.number(),
+	},
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.brandId, {
+			imageStyleAnalysis: {
+				profile: args.profile,
+				analyzedAt: Date.now(),
+				analyzedImageCount: args.analyzedImageCount,
+			},
+		})
+	},
+})
+
+export const saveTemplateInterpretation = internalMutation({
+	args: {
+		brandId: v.id('brands'),
+		interpretation: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const brand = await ctx.db.get(args.brandId)
+		if (!brand?.postTemplate) {
+			throw new Error('No post template configured.')
+		}
+		await ctx.db.patch(args.brandId, {
+			postTemplate: {
+				...brand.postTemplate,
+				interpretation: args.interpretation,
+				interpretedAt: Date.now(),
+			},
+		})
+	},
+})
+
 export const completeOnboarding = mutation({
 	args: { brandId: v.id('brands') },
 	handler: async (ctx, args) => {
 		const { brand } = await assertBrandOwner(ctx, args.brandId)
 		await ctx.db.patch(brand._id, {
 			onboardingCompletedAt: Date.now(),
-			onboardingStep: 8,
+			onboardingStep: 9,
 		})
 	},
 })
@@ -414,6 +482,7 @@ export const getWithMedia = query({
 			illustrationUrls,
 			referencePostImageUrls,
 			brandBookUrl,
+			templateImageUrl,
 		] = await Promise.all([
 			resolveUrl(v?.logoStorageId ?? v?.darkLogoStorageId),
 			Promise.all(iconIds.map((id) => ctx.storage.getUrl(id))),
@@ -427,6 +496,7 @@ export const getWithMedia = query({
 				),
 			),
 			resolveUrl(brand.brandBookStorageId),
+			resolveUrl(brand.postTemplate?.imageStorageId),
 		])
 
 		return {
@@ -442,6 +512,7 @@ export const getWithMedia = query({
 				imageryUrls: [...photographyUrls, ...illustrationUrls],
 				referencePostImageUrls,
 				brandBookUrl,
+				templateImageUrl,
 			},
 		}
 	},

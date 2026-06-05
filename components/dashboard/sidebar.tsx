@@ -165,13 +165,25 @@ export function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
 									>
 										<span
 											className={cn(
-												'relative flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold',
-												isActive
-													? 'bg-foreground text-white'
-													: 'bg-accent text-foreground/50',
+												'relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md text-[11px] font-semibold',
+												brand.logoUrl
+													? 'bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.06)]'
+													: isActive
+														? 'bg-foreground text-white'
+														: 'bg-accent text-foreground/50',
 											)}
 										>
-											{brandInitial}
+											{brand.logoUrl ? (
+												<Image
+													src={brand.logoUrl}
+													alt={displayName}
+													fill
+													className="object-contain p-0.5"
+													unoptimized
+												/>
+											) : (
+												brandInitial
+											)}
 											{isDraft && (
 												<span
 													className="absolute -right-0.5 -top-0.5 flex size-2 items-center justify-center"
