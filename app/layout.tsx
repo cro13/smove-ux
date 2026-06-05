@@ -1,13 +1,8 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
-import dynamic from 'next/dynamic'
 
+import { ConvexClientProvider } from './ConvexClientProvider'
 import './globals.css'
-
-const ConvexClientProvider = dynamic(
-	() => import('./ConvexClientProvider').then((m) => m.ConvexClientProvider),
-	{ ssr: false }
-)
 
 const geistSans = Geist({
 	variable: '--font-sans',
